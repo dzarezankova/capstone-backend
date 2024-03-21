@@ -4,9 +4,11 @@ from django.views.decorators.http import require_http_methods
 from django.conf import settings
 from .models import NiftiImage
 from .inference import get_media_images, transform_data, model_fn, inference, pytorch_to_stl
+from django.views.decorators.csrf import csrf_exempt
 import os
 
 @require_http_methods(["POST"])
+@csrf_exempt
 def upload_nifti(request):
     file = request.FILES.get('nifti_image')
     desired_name = request.POST.get('filename')  # Get the desired filename from the request
@@ -44,6 +46,7 @@ def upload_nifti(request):
     return JsonResponse({'message': 'File uploaded successfully with the specified name.', 'id': nifti_image.id})
 
 @require_http_methods(["GET", "POST"])  # Adjust based on your app's needs
+@csrf_exempt  # Disable CSRF protection for this view
 def inference_view(request, patient_id):
     # Step 1: List image paths
     image_paths = get_media_images(patient_id)

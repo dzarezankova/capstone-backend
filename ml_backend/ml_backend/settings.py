@@ -73,6 +73,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "ml_backend.wsgi.application"
 
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',  # Adjust to your frontend's origin
+]
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
