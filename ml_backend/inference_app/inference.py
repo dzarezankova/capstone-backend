@@ -21,6 +21,7 @@ import os
 import tempfile
 from skimage.measure import marching_cubes
 import trimesh
+from django.conf import settings
 
 def list_image_paths(patient_id):
     """
@@ -28,7 +29,7 @@ def list_image_paths(patient_id):
     Assumes there's a field in NiftiImage model that relates to patient_id.
     """
     # Query the NiftiImage model for images related to the patient_id
-    images = NiftiImage.objects.filter(patient_id=patient_id)
+    images = NiftiImage.objects.filter(id=patient_id)
     image_paths = []
 
     for image in images:
@@ -37,6 +38,19 @@ def list_image_paths(patient_id):
         # If you need the filesystem path, use image.file.path
         image_path = image.file.path  # Use image.file.path for absolute filesystem path
         image_paths.append(image_path)
+
+    return image_paths
+
+def get_media_images(patient_id):
+    search_path = os.path.join(settings.MEDIA_ROOT, 'nifti_images')  # Adjust subdirectory as needed
+    image_paths = []
+
+    # Walk through the directory
+    for root, dirs, files in os.walk(search_path):
+        # Filter files that contain the patient_id in their file name
+        filtered_files = [file for file in files if str(patient_id) in file]
+        # Append the full path to the image_paths list
+        image_paths.extend([os.path.join(root, file) for file in filtered_files])
 
     return image_paths
 
@@ -83,12 +97,16 @@ def model_fn(model_path = None):
     model = SegResNet(
         blocks_down=[1, 2, 2, 4],
         blocks_up=[1, 1, 1],
-        init_filters=8,
-        in_channels=1,
+        init_filters=16,
+        in_channels=4,
         out_channels=3,
+        dropout_prob=0.2,
     )
     try:
-        model.load_state_dict(torch.load(model_path))
+        if torch.cuda.is_available():
+            model.load_state_dict(torch.load(model_path))
+        else:
+            model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
     except:
         with open(model_path, 'rb') as f:
             if torch.cuda.is_available():
